@@ -1,0 +1,7 @@
+gitrepo/
+text.txt
+pgn.pgn
+test/
+.vscode
+*.py 
+*.txt
