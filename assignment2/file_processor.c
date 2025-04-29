@@ -6,7 +6,7 @@
 int main(int argc, char* argv[])
 {
     if (argc != 3) {
-        printf("Usage: %s <data.txt> <requests.txt", argv[0]);
+        printf("Usage: %s <data.txt> <requests.txt\n", argv[0]);
         exit(1);
     }
     FILE* data = fopen(argv[1], "r+");
