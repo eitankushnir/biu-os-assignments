@@ -1,4 +1,7 @@
 #include <dirent.h>
+#include <limits.h>
+#include <linux/limits.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +17,8 @@ void copy_directory(char*, char*);
 int main(int argc, char* argv[])
 {
     if (argc != 3) {
-        printf("Usage: %s <source_directory> <backup_directory>", argv[0]);
+        printf("Usage: %s <source_directory> <backup_directory>\n", argv[0]);
+        exit(1);
     }
     char* src_path = argv[1];
     char* dest_path = argv[2];
@@ -52,23 +56,19 @@ void create_hardlink(char* source_file_path, char* link_path)
     }
 }
 
-void replicate_symlink(char* link_path, char* dest_path)
+void replicate_symlink(char* link_path, char* backup_link_path)
 {
-    pid_t pid = fork();
-    if (pid == 0) {
-        execl("/bin/ln", "ln", "-s", link_path, dest_path, NULL);
-        perror("exec symlink failed");
-    } else if (pid > 0) {
-        int status;
-        waitpid(pid, &status, 0);
-        if (WIFEXITED(status)) {
-            return;
-        } else {
-            perror("ln symlink failed");
-        }
-    } else {
-        perror("fork symlink failed");
+    char target[PATH_MAX];
+    ssize_t len = readlink(link_path, target, PATH_MAX);
+    if (len < 0) {
+        perror("readlink");
+        return;
     }
+    target[len] = '\0'; // need to null terminate result.
+    if (target[0] != '/' && symlink(target, backup_link_path) != 0) {
+        perror("symlink");
+    }
+    // need to replace the absolute path of the symbolic link with the backup.
 }
 
 void create_directory(char* path)
