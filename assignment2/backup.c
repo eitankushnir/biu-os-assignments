@@ -17,7 +17,7 @@ void copy_directory(char*, char*);
 int main(int argc, char* argv[])
 {
     if (argc != 3) {
-        printf("Usage: %s <source_directory> <backup_directory>\n", argv[0]);
+
         exit(1);
     }
     char* src_path = argv[1];

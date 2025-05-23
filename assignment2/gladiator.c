@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
     // printf("Op 2: %d\n", opponents[1]);
     // printf("Op 3: %d\n", opponents[2]);
 
-    fprintf(logFile, "Gladiator process started. %d:\n", getpid());
+    fprintf(logFile, "Gladiator process started. %u:\n", getpid());
     while (health > 0) {
         for (int i = 0; i < 3; i++) {
             int opponent_attack = get_opponent_attack(opponents[i]);
@@ -63,7 +63,7 @@ int get_opponent_attack(int n)
 {
     char opstats[7];
     snprintf(opstats, sizeof(opstats), "G%d.txt", n);
-    FILE* opFile = fopen(opstats, "rb");
+    FILE* opFile = fopen(opstats, "r");
     if (opFile == NULL) {
         perror("fopen failed");
     }
