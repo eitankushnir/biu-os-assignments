@@ -30,7 +30,7 @@ void runFocusMode(int numOfRounds, int duration)
         currentRound++;
     }
     emopty_sigprocmask();
-    printf("\nFocus Mode complete. All distractions are now unblocked.");
+    printf("\nFocus Mode complete. All distractions are now unblocked.\n");
 }
 
 static int handle_input()

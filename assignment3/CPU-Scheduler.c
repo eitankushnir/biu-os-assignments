@@ -66,6 +66,7 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum)
     run_priority_scheduler(processes, process_count);
     printf("\n");
     run_rr_scheduler(processes, process_count, timeQuantum);
+    printf("\n");
 }
 
 void reset_state()
@@ -77,6 +78,13 @@ void reset_state()
         processes[i].end_time = -1;
         processes[i].finished = 0;
     }
+    for (int i = 0; i < process_count; i++) {
+        while (processes[i].index != i) {
+            process tmp = processes[i];
+            processes[i] = processes[tmp.index];
+            processes[tmp.index] = tmp;
+        }
+    }
 }
 
 void run_process(process* p, int duration)
@@ -84,7 +92,7 @@ void run_process(process* p, int duration)
     alarm(duration);
     pause();
 
-    printf("%d → %d: %s %s.\n", current_time, current_time + duration, p->name, p->description);
+    printf("%d → %d: %s Running %s.\n", current_time, current_time + duration, p->name, p->description);
     fflush(stdout);
     if (p->start_time == -1) {
         p->start_time = current_time;
@@ -271,7 +279,7 @@ void run_rr_scheduler(process* processes, int process_count, int time_quantum)
     printf("──────────────────────────────────────────────\n");
     printf(">> Engine Status  : Completed\n");
     printf(">> Summary        :\n");
-    printf("   └─ Total Turnaround Time : %d time units\n", current_time);
+    printf("   └─ Total Turnaround Time : %d time units\n\n", current_time);
     printf(">> End of Report\n");
     printf("══════════════════════════════════════════════\n");
 }
