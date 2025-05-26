@@ -1,4 +1,3 @@
-#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +30,7 @@ void mergesort(process*, int r, int l, comparator);
 void run_fcfs_scheduler(process*, int);
 void run_sjf_scheduler(process*, int);
 void run_priority_scheduler(process*, int);
+void run_rr_scheduler(process*, int p_count, int quantum);
 
 int arival_time_cmp(const process* p1, const process* p2)
 {
@@ -64,6 +64,8 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum)
     run_sjf_scheduler(processes, process_count);
     printf("\n");
     run_priority_scheduler(processes, process_count);
+    printf("\n");
+    run_rr_scheduler(processes, process_count, timeQuantum);
 }
 
 void reset_state()
@@ -74,11 +76,6 @@ void reset_state()
         processes[i].start_time = -1;
         processes[i].end_time = -1;
         processes[i].finished = 0;
-    }
-    for (int i = 0; i < process_count; i++) {
-        process tmp = processes[processes[i].index];
-        processes[processes[i].index] = processes[i];
-        processes[i] = tmp;
     }
 }
 
@@ -189,28 +186,16 @@ void run_sjf_scheduler(process* processes, int process_count)
 
     reset_state();
     mergesort(processes, 0, process_count - 1, remaining_time_cmp);
+    mergesort(processes, 0, process_count - 1, arival_time_cmp);
 
     int processes_finished = 0;
     while (processes_finished < process_count) {
         process* p = &processes[processes_finished];
-        if (p->finished) {
-            processes_finished++;
-            continue;
-        }
         if (p->arrival_time <= current_time) {
             run_process(p, p->burst_time);
             processes_finished++;
         } else {
-            int i;
-            for (i = processes_finished + 1; i < process_count; i++) {
-                process* p = &processes[i];
-                if (!p->finished && p->arrival_time <= current_time) {
-                    run_process(p, p->burst_time);
-                    break;
-                }
-            }
-            if (i == process_count)
-                idle(p->arrival_time - current_time);
+            idle(p->arrival_time - current_time);
         }
     }
     printf("\n");
@@ -231,28 +216,16 @@ void run_priority_scheduler(process* processes, int process_count)
 
     reset_state();
     mergesort(processes, 0, process_count - 1, priority_cmp);
+    mergesort(processes, 0, process_count - 1, arival_time_cmp);
 
     int processes_finished = 0;
     while (processes_finished < process_count) {
         process* p = &processes[processes_finished];
-        if (p->finished) {
-            processes_finished++;
-            continue;
-        }
         if (p->arrival_time <= current_time) {
             run_process(p, p->burst_time);
             processes_finished++;
         } else {
-            int i;
-            for (i = processes_finished + 1; i < process_count; i++) {
-                process* p = &processes[i];
-                if (!p->finished && p->arrival_time <= current_time) {
-                    run_process(p, p->burst_time);
-                    break;
-                }
-            }
-            if (i == process_count)
-                idle(p->arrival_time - current_time);
+            idle(p->arrival_time - current_time);
         }
     }
     printf("\n");
@@ -260,6 +233,45 @@ void run_priority_scheduler(process* processes, int process_count)
     printf(">> Engine Status  : Completed\n");
     printf(">> Summary        :\n");
     printf("   └─ Average Waiting Time : %.2lf time units\n", average_wait_time(processes, process_count));
+    printf(">> End of Report\n");
+    printf("══════════════════════════════════════════════\n");
+}
+
+void run_rr_scheduler(process* processes, int process_count, int time_quantum)
+{
+    printf("══════════════════════════════════════════════\n");
+    printf(">> Scheduler Mode : Round Robin\n");
+    printf(">> Engine Status  : Initialized\n");
+    printf("──────────────────────────────────────────────\n\n");
+
+    reset_state();
+    mergesort(processes, 0, process_count - 1, arival_time_cmp);
+
+    int processes_finished = 0;
+    while (processes_finished < process_count) {
+        int next_arrival = processes[process_count - 1].arrival_time;
+        int process_in_queue = 0;
+        for (int i = 0; i < process_count; i++) {
+            process* p = &processes[i];
+            if (p->finished)
+                continue;
+            if (p->arrival_time <= current_time) {
+                int runtime = (time_quantum <= p->remaining_time) ? time_quantum : p->remaining_time;
+                run_process(p, runtime);
+                processes_finished += p->finished;
+                process_in_queue = 1;
+            } else {
+                next_arrival = (next_arrival > p->arrival_time) ? p->arrival_time : next_arrival;
+            }
+        }
+        if (!process_in_queue)
+            idle(next_arrival - current_time);
+    }
+    printf("\n");
+    printf("──────────────────────────────────────────────\n");
+    printf(">> Engine Status  : Completed\n");
+    printf(">> Summary        :\n");
+    printf("   └─ Total Turnaround Time : %d time units\n", current_time);
     printf(">> End of Report\n");
     printf("══════════════════════════════════════════════\n");
 }
