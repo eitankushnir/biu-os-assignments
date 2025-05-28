@@ -1,3 +1,4 @@
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -193,18 +194,29 @@ void run_sjf_scheduler(process* processes, int process_count)
     printf("──────────────────────────────────────────────\n\n");
 
     reset_state();
-    mergesort(processes, 0, process_count - 1, remaining_time_cmp);
     mergesort(processes, 0, process_count - 1, arival_time_cmp);
+    mergesort(processes, 0, process_count - 1, remaining_time_cmp);
 
     int processes_finished = 0;
     while (processes_finished < process_count) {
-        process* p = &processes[processes_finished];
-        if (p->arrival_time <= current_time) {
-            run_process(p, p->burst_time);
-            processes_finished++;
-        } else {
-            idle(p->arrival_time - current_time);
+        int next_arival = -1;
+        int process_in_queue = 0;
+        for (int i = 0; i < process_count; i++) {
+            process* p = &processes[i];
+            if (p->finished)
+                continue;
+            if (p->arrival_time <= current_time) {
+                run_process(p, p->remaining_time);
+                processes_finished++;
+                process_in_queue = 1;
+                break;
+            } else if (next_arival == -1)
+                next_arival = p->arrival_time;
+            else
+                next_arival = (next_arival > p->arrival_time) ? p->arrival_time : next_arival;
         }
+        if (!process_in_queue)
+            idle(next_arival - current_time);
     }
     printf("\n");
     printf("──────────────────────────────────────────────\n");
@@ -223,18 +235,29 @@ void run_priority_scheduler(process* processes, int process_count)
     printf("──────────────────────────────────────────────\n\n");
 
     reset_state();
-    mergesort(processes, 0, process_count - 1, priority_cmp);
     mergesort(processes, 0, process_count - 1, arival_time_cmp);
+    mergesort(processes, 0, process_count - 1, priority_cmp);
 
     int processes_finished = 0;
     while (processes_finished < process_count) {
-        process* p = &processes[processes_finished];
-        if (p->arrival_time <= current_time) {
-            run_process(p, p->burst_time);
-            processes_finished++;
-        } else {
-            idle(p->arrival_time - current_time);
+        int next_arival = -1;
+        int process_in_queue = 0;
+        for (int i = 0; i < process_count; i++) {
+            process* p = &processes[i];
+            if (p->finished)
+                continue;
+            if (p->arrival_time <= current_time) {
+                run_process(p, p->remaining_time);
+                processes_finished++;
+                process_in_queue = 1;
+                break;
+            } else if (next_arival == -1)
+                next_arival = p->arrival_time;
+            else
+                next_arival = (next_arival > p->arrival_time) ? p->arrival_time : next_arival;
         }
+        if (!process_in_queue)
+            idle(next_arival - current_time);
     }
     printf("\n");
     printf("──────────────────────────────────────────────\n");
