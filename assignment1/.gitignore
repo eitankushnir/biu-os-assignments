@@ -5,3 +5,6 @@ test/
 .vscode
 *.py 
 *.txt
+tester/
+test_files/
+env/
