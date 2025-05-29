@@ -1,8 +1,8 @@
-#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #define MAX_NAME 51
 #define MAX_DESCRIPTION 101
@@ -25,13 +25,15 @@ typedef struct {
 } process;
 
 typedef int (*comparator)(const process*, const process*);
+typedef void (*scheduler)(process* processes, int process_count, int time_quantum);
 
 int read_processes_file(char* path, process* buf);
 void mergesort(process*, int r, int l, comparator);
-void run_fcfs_scheduler(process*, int);
-void run_sjf_scheduler(process*, int);
-void run_priority_scheduler(process*, int);
+void run_fcfs_scheduler(process*, int, int);
+void run_sjf_scheduler(process*, int, int);
+void run_priority_scheduler(process*, int, int);
 void run_rr_scheduler(process*, int p_count, int quantum);
+void run_scheduler(scheduler, int);
 
 int arival_time_cmp(const process* p1, const process* p2)
 {
@@ -60,34 +62,32 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum)
     process_count = read_processes_file(processesCsvFilePath, processes);
     if (process_count < 0)
         exit(1);
-    run_fcfs_scheduler(processes, process_count);
+
+    run_scheduler(run_fcfs_scheduler, 0);
     printf("\n");
-    run_sjf_scheduler(processes, process_count);
+    run_scheduler(run_sjf_scheduler, 0);
     printf("\n");
-    run_priority_scheduler(processes, process_count);
+    run_scheduler(run_priority_scheduler, 0);
     printf("\n");
-    run_rr_scheduler(processes, process_count, timeQuantum);
+    run_scheduler(run_rr_scheduler, timeQuantum);
     printf("\n");
 }
 
-void reset_state()
+void run_scheduler(scheduler scheduler, int time_quantum)
 {
-    current_time = 0;
-    for (int i = 0; i < process_count; i++) {
-        processes[i].remaining_time = processes[i].burst_time;
-        processes[i].start_time = -1;
-        processes[i].end_time = -1;
-        processes[i].finished = 0;
-    }
-    for (int i = 0; i < process_count; i++) {
-        while (processes[i].index != i) {
-            process tmp = processes[i];
-            processes[i] = processes[tmp.index];
-            processes[tmp.index] = tmp;
-        }
+    pid_t scheduler_pid = fork();
+    if (scheduler_pid == 0) {
+        // Scheduler
+        scheduler(processes, process_count, time_quantum);
+        exit(0);
+    } else if (scheduler_pid > 0) {
+        // parent
+        wait(NULL);
+    } else {
+        perror("fork failed");
+        exit(1);
     }
 }
-
 void run_process(process* p, int duration)
 {
     alarm(duration);
@@ -153,18 +153,18 @@ int read_processes_file(char* processesCsvFilePath, process* buffer)
     }
     if (fclose(processfile)) {
         perror("fclose failed");
+        return -1;
     }
     return i;
 }
 
-void run_fcfs_scheduler(process* processes, int process_count)
+void run_fcfs_scheduler(process* processes, int process_count, int unused)
 {
     printf("══════════════════════════════════════════════\n");
     printf(">> Scheduler Mode : FCFS\n");
     printf(">> Engine Status  : Initialized\n");
     printf("──────────────────────────────────────────────\n\n");
 
-    reset_state();
     mergesort(processes, 0, process_count - 1, arival_time_cmp);
 
     int processes_finished = 0;
@@ -186,14 +186,13 @@ void run_fcfs_scheduler(process* processes, int process_count)
     printf("══════════════════════════════════════════════\n");
 }
 
-void run_sjf_scheduler(process* processes, int process_count)
+void run_sjf_scheduler(process* processes, int process_count, int unused)
 {
     printf("══════════════════════════════════════════════\n");
     printf(">> Scheduler Mode : SJF\n");
     printf(">> Engine Status  : Initialized\n");
     printf("──────────────────────────────────────────────\n\n");
 
-    reset_state();
     mergesort(processes, 0, process_count - 1, arival_time_cmp);
     mergesort(processes, 0, process_count - 1, remaining_time_cmp);
 
@@ -227,14 +226,13 @@ void run_sjf_scheduler(process* processes, int process_count)
     printf("══════════════════════════════════════════════\n");
 }
 
-void run_priority_scheduler(process* processes, int process_count)
+void run_priority_scheduler(process* processes, int process_count, int unused)
 {
     printf("══════════════════════════════════════════════\n");
     printf(">> Scheduler Mode : Priority\n");
     printf(">> Engine Status  : Initialized\n");
     printf("──────────────────────────────────────────────\n\n");
 
-    reset_state();
     mergesort(processes, 0, process_count - 1, arival_time_cmp);
     mergesort(processes, 0, process_count - 1, priority_cmp);
 
@@ -275,7 +273,6 @@ void run_rr_scheduler(process* processes, int process_count, int time_quantum)
     printf(">> Engine Status  : Initialized\n");
     printf("──────────────────────────────────────────────\n\n");
 
-    reset_state();
     mergesort(processes, 0, process_count - 1, arival_time_cmp);
 
     int processes_finished = 0;
