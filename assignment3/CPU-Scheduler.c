@@ -70,11 +70,11 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum)
     run_scheduler(run_priority_scheduler, 0);
     printf("\n");
     run_scheduler(run_rr_scheduler, timeQuantum);
-    printf("\n");
 }
 
 void run_scheduler(scheduler scheduler, int time_quantum)
 {
+    fflush(stdout);
     pid_t scheduler_pid = fork();
     if (scheduler_pid == 0) {
         // Scheduler
@@ -103,6 +103,8 @@ void run_process(process* p, int duration)
     if (p->remaining_time <= 0) {
         p->finished = 1;
         p->end_time = current_time;
+    } else {
+        p->arrival_time = current_time;
     }
 }
 void idle(int duration)
@@ -288,6 +290,8 @@ void run_rr_scheduler(process* processes, int process_count, int time_quantum)
                 run_process(p, runtime);
                 processes_finished += p->finished;
                 process_in_queue = 1;
+                mergesort(processes, 0, process_count - 1, arival_time_cmp);
+                break;
             } else {
                 next_arrival = (next_arrival > p->arrival_time) ? p->arrival_time : next_arrival;
             }
