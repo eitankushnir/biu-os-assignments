@@ -70,6 +70,7 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum)
     run_scheduler(run_priority_scheduler, 0);
     printf("\n");
     run_scheduler(run_rr_scheduler, timeQuantum);
+    printf("\n");
 }
 
 void run_scheduler(scheduler scheduler, int time_quantum)
